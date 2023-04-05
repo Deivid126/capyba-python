@@ -1,6 +1,10 @@
-from rest_framework.views import APIView
+
 from rest_framework.response import Response
+from rest_framework.decorators import APIView, api_view, permission_classes
 from rest_framework.permissions import BasePermission
+from rest_framework.permissions import (
+    IsAuthenticated,
+)
 from django.db.models import Q
 from django.core.paginator import Paginator
 from rest_framework.permissions import IsAuthenticated
@@ -12,8 +16,9 @@ from .models import Post
     
 class PostListView(APIView):
 
-    permission_classes= [IsAuthenticated]
-
+    
+    @api_view(http_method_names=["GET"])
+    @permission_classes([IsAuthenticated])
     def get(self, request):
        
         page_number = int(request.query_params.get('page', 1))
@@ -46,8 +51,9 @@ class IsVerified(BasePermission):
     
 class PostViewRestrict(APIView):
 
-    permission_classes= [IsVerified]
-
+    
+    @api_view(http_method_names=["GET"])
+    @permission_classes([IsVerified])
     def get(self, request):
        
         page_number = int(request.query_params.get('page', 1))

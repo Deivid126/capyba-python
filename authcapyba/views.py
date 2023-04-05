@@ -1,9 +1,13 @@
 
 from venv import logger
-from rest_framework.views import APIView
+from rest_framework.decorators import APIView, api_view, permission_classes
 from rest_framework.response import Response
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import (
+    IsAuthenticated,
+    AllowAny,
+)
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from.serializers import UserSerializer,PDFObjSerializer, LoginSerializer
@@ -16,7 +20,8 @@ import jwt
 
 # Create your views here.
 class RegisterView(APIView):
-    
+    @api_view(http_method_names=["POST"])
+    @permission_classes([AllowAny])
     def post(self, request):
 
         serializer = UserSerializer(data = request.data)
@@ -40,6 +45,8 @@ class RegisterView(APIView):
     
 class LoginView(APIView):
 
+    @api_view(http_method_names=["POST"])
+    @permission_classes([AllowAny])
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -60,7 +67,9 @@ class LoginView(APIView):
 
         return Response(tokens, status=status.HTTP_200_OK)
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    
+    @api_view(http_method_names=["POST"])
+    @permission_classes([IsAuthenticated])
     def post(self, request):
         
         try:
@@ -75,7 +84,8 @@ class LogoutView(APIView):
             return Response({'mensagem': 'Não foi possível realizar o logout.'}, status=400)
         
 class VerifyEmailView(APIView):
-    permission_classes=[]
+    @api_view(http_method_names=["GET"])
+    @permission_classes([AllowAny])
     def get(self, request):
         token_key = request.GET.get('token')
         
@@ -102,7 +112,9 @@ class VerifyEmailView(APIView):
 
         return Response({'menssagem': 'Email verificado com sucesso.'}, status=status.HTTP_200_OK)
 class UptadeUser(APIView):
-    permission_classes = [IsAuthenticated]
+
+    @api_view(http_method_names=["POST"])
+    @permission_classes([IsAuthenticated])
     def post(self, request):
         serializer = UserSerializer(data = request.data)
         serializer.is_valid(raise_exception=True)
@@ -110,8 +122,10 @@ class UptadeUser(APIView):
         return Response({'menssagem':'Usuario autualizado com sucesso'})
 
 class PDFUploadView(APIView):
-    permission_classes = [IsAuthenticated]
+    
 
+    @api_view(http_method_names=["POST"])
+    @permission_classes([AllowAny])
     def post(self, request, format=None):
         serializer = PDFObjSerializer(data=request.data)
         if serializer.is_valid():
