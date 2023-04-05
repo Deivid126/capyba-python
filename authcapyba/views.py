@@ -94,6 +94,15 @@ class VerifyEmailView(APIView):
             return Response({'menssagem':'Usuario não existe'})
 
         return Response({'menssagem':'Usuario autenticado'})
+    
+class UptadeUser(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        serializer = UserSerializer(data = request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'menssagem':'Usuario autualizado com sucesso'})
+
 class PDFUploadView(APIView):
     permission_classes = [IsAuthenticated]
 

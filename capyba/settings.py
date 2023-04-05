@@ -11,7 +11,7 @@ DJANGO_SETTINGS_MODULE='capyba.settings.py'
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nk#$ge5yzxtjmsi=eadm*-k+$9*#nr^4v(2s7!dqr@0_#-y8l$'
+SECRET_KEY = os.environ["SECRET_KEY"]
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
