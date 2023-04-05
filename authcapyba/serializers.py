@@ -18,3 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 class PDFObjSerializer(serializers.Serializer):
     pdf = serializers.FileField()
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)

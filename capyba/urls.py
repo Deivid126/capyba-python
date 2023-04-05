@@ -8,5 +8,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),
     path('blogcapyba/', include(blog_urls)),
-    path('auth/', include(auth_urls))
+    path('authcapyba/', include(auth_urls))
 ]

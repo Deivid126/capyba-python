@@ -1,18 +1,18 @@
-from urllib import response
+
+from venv import logger
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.exceptions import AuthenticationFailed
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.permissions import BasePermission
-from django.db.models import Q
 from rest_framework import status
-from django.core.paginator import Paginator
 from rest_framework.permissions import IsAuthenticated
-from.serializers import UserSerializer,PDFObjSerializer
-from rest_framework.authtoken.models import Token
+from.serializers import UserSerializer,PDFObjSerializer, LoginSerializer
 from .utils import send_confirmation_email
 from .models import User, PDF
-import jwt, datetime
+from datetime import datetime
+from django.conf import settings
+import jwt
+
 
 # Create your views here.
 class RegisterView(APIView):
@@ -29,35 +29,38 @@ class RegisterView(APIView):
 
         tokens = {"access": str(refresh.access_token), "refresh": str(refresh)}
         
-        send_confirmation_email(user.email,token=tokens.get('access'))
+        try:
+            send_confirmation_email(user.email, token=tokens.get('access'))
+        except Exception as e:
+            logger.exception('Error sending confirmation email')
 
-        return response(serializer.data)
+       
+        return Response(serializer.data)
 
     
 class LoginView(APIView):
 
     def post(self, request):
-        email = request.data['email']
-        password = request.data['password']
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
 
-        user = User.objects.filter(email=email).first()
-
-        if user is None:
-            raise AuthenticationFailed('User not found!')
+        try:
+            user = User.objects.get(email=email)
+        except ObjectDoesNotExist:
+            return Response({'error': 'User not found!'}, status=status.HTTP_404_NOT_FOUND)
 
         if not user.check_password(password):
-            raise AuthenticationFailed('Incorrect password!')
+            return Response({'error': 'Incorrect password!'}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
 
         tokens = {"access": str(refresh.access_token), "refresh": str(refresh)}
 
-        response = Response()
-
-        response.data = tokens
-        
-        return response
+        return Response(tokens, status=status.HTTP_200_OK)
 class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         
         try:
@@ -72,29 +75,32 @@ class LogoutView(APIView):
             return Response({'mensagem': 'Não foi possível realizar o logout.'}, status=400)
         
 class VerifyEmailView(APIView):
+    permission_classes=[]
     def get(self, request):
+        token_key = request.GET.get('token')
         
-        try:
-            token_key = request.GET.get('token')
-            token_obj = Token.objects.get(key=token_key)
-        except (Token.DoesNotExist, TypeError):
-            return Response({'menssagem':'Token não existe'})
-
-        if token_obj.expiration_date < datetime.now() or token_obj.used:
-            return Response({'menssagem':'Token expirou'})
+        if not token_key:
+            return Response({'menssagem': 'Token não fornecido.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(email=token_obj.email)
-            user.is_verified = True
-            user.save()
+            decoded_token = jwt.decode(token_key, settings.SECRET_KEY, algorithms=['HS256'])
+            email = decoded_token['email']
+            expiration_time = datetime.fromtimestamp(decoded_token['exp'])
+            token_obj = RefreshToken(token=token_key, user=User.objects.get(email=email))
+        except (jwt.exceptions.InvalidTokenError, User.DoesNotExist, KeyError):
+            return Response({'menssagem': 'Token inválido.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            token_obj.used = True
-            token_obj.save()
-        except User.DoesNotExist:
-            return Response({'menssagem':'Usuario não existe'})
+        if token_obj.used:
+            return Response({'menssagem': 'Token já utilizado.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({'menssagem':'Usuario autenticado'})
-    
+        if expiration_time < datetime.now():
+            return Response({'menssagem': 'Token expirado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = token_obj.user
+        user.is_verified = True
+        user.save()
+
+        return Response({'menssagem': 'Email verificado com sucesso.'}, status=status.HTTP_200_OK)
 class UptadeUser(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):

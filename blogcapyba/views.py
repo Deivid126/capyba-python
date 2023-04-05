@@ -19,10 +19,14 @@ class PostListView(APIView):
         page_number = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 10))
         search_query = request.query_params.get('search', '')
+        order_by = request.query_params.get('order_by', 'id')
+        is_published= request.query_params.get('is_published', None)
 
      
-        queryset = Post.objects.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+        queryset = Post.objects.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query)).order_by(order_by)
 
+        if is_published is not None:
+            queryset = queryset.filter(is_published=is_published)
        
         paginator = Paginator(queryset, page_size)
         page = paginator.get_page(page_number)
@@ -49,9 +53,14 @@ class PostViewRestrict(APIView):
         page_number = int(request.query_params.get('page', 1))
         page_size = int(request.query_params.get('page_size', 10))
         search_query = request.query_params.get('search', '')
+        order_by = request.query_params.get('order_by', 'id')
+        is_published = request.query_params.get('is_published', None)
 
      
-        queryset = Post.objects.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+        queryset = Post.objects.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query)).order_by(order_by)
+     
+        if is_published is not None:
+            queryset = queryset.filter(is_published=is_published)
 
         paginator = Paginator(queryset, page_size)
         page = paginator.get_page(page_number)
